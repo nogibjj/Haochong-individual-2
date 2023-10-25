@@ -1,5 +1,7 @@
 # Haochong-individual-project-2 
-
+[![Clippy](https://github.com/nogibjj/Haochong-individual-2/actions/workflows/lint.yml/badge.svg)](https://github.com/nogibjj/Haochong-individual-2/actions/workflows/lint.yml)
+[![Tests](https://github.com/nogibjj/Haochong-individual-2/actions/workflows/tests.yml/badge.svg)](https://github.com/nogibjj/Haochong-individual-2/actions/workflows/tests.yml)
+[![Rust CI/CD](https://github.com/nogibjj/Haochong-individual-2/actions/workflows/RustCI.yml/badge.svg)](https://github.com/nogibjj/Haochong-individual-2/actions/workflows/RustCI.yml)
 
 This is a repo template for course 706_Data_Engineering Individual Project 2. First of all, I create this Rust project with a `Cargo.toml` inside and I use the same dataset in week 2 and 5. Secondly, I define functions called `extract` to get data from url. Then, use `load_transform` to create database. After that, I use `connect` to connect database.  Next, I create the table "indexs" and perform CRUD by `create_table`, `read`, `update_shape_leng` and `delete`. I also define a function called `insert` to help me with CRUD. Consequently, I use `main.rs` to use my function in `lib.rs`, and use the output of `main.rs` and `test_main.rs` to test my functions. Finally, I use Action to run `Makefile` and got a 100% pass. 
 
