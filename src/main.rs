@@ -1,74 +1,125 @@
 extern crate csv;
 
+use Haochong_individual_2::extract;
+use Haochong_individual_2::create_table;
+use Haochong_individual_2::load_csv_into_db;
+use Haochong_individual_2::insert;
+use Haochong_individual_2::read;
+use Haochong_individual_2::update_shape_leng;
+use Haochong_individual_2::delete;
+use rusqlite::Connection;
 use std::error::Error;
-use std::fs::File;
-use csv::ReaderBuilder;
-use std::time::Instant;
-use Haochong_Week_8_mini::calculate_median;
-use sys_info::mem_info;
-use std::process::Command;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let output = Command::new("ps")
-        .arg("-o")
-        .arg("%cpu")
-        .arg("-p")
-        .arg(format!("{}", std::process::id()))
-        .output()
-        .expect("Failed to execute ps command");
+    let url = "https://catalogue.data.wa.gov.au/dataset/f39087e2-2885-473e-bc62-ca610cd94340/resource/96c892f3-b387-410c-80d0-e4dcec68e6f2/download/25ktopomapseriesindex.csv";
+    let file_path = "25ktopomapseriesindex.csv";
+    let db_path = "ktopomapseriesindexDB.db";
 
-    let usage = String::from_utf8_lossy(&output.stdout);
-    let lines: Vec<&str> = usage.split('\n').collect();
-    if lines.len() >= 2 {
-        let usage_str = lines[1].trim();
-        let usage_float: Result<f32, _> = usage_str.parse();
-        match usage_float {
-            Ok(usage) => println!("CPU Usage: {:.2}%", usage),
-            Err(_) => println!("Failed to parse CPU usage"),
+    let db_exists = std::path::Path::new(db_path).exists();
+
+    extract(url, file_path)?;
+    
+    let conn = Connection::open(db_path)?;
+    create_table(&conn)?;
+    if !db_exists {
+        load_csv_into_db(file_path)?;
+    }
+
+    let name_cap_2 = "Test Name";
+    let num_rom_ca = "Test Num";
+    let shape_leng = 1.1;
+    let shape_area = 2.2;
+
+    insert(&conn, name_cap_2, num_rom_ca, shape_leng, shape_area)?;
+
+    match read(&conn) {
+        Ok(indexs) => {
+            for (id, name_cap_2, num_rom_ca, shape_leng, shape_area) in indexs {
+                println!("ID: {}, Name: {}, Num: {}, Shape Leng: {}, Shape Area: {}",
+                         id, name_cap_2, num_rom_ca, shape_leng, shape_area);
+            }
         }
-    } else {
-        println!("Failed to get CPU usage");
-    }
-    // Record the start time
-    let start_time = Instant::now();
-    // Load the CSV file
-    let csv_file = "25ktopomapseriesindex.csv"; // Update with your CSV file path
-    let file = File::open(csv_file)?;
-
-    // Create a CSV reader
-    let mut rdr = ReaderBuilder::new()
-        .delimiter(b',')
-        .has_headers(true)
-        .from_reader(file);
-
-    let mut shape_leng_values: Vec<f64> = Vec::new();
-    let mut shape_area_values: Vec<f64> = Vec::new();
-
-    for result in rdr.records() {
-        let record = result?;
-        let shape_leng: f64 = record[2].parse()?; // Change index to match your data
-        let shape_area: f64 = record[3].parse()?; // Change index to match your data
-        shape_leng_values.push(shape_leng);
-        shape_area_values.push(shape_area);
+        Err(err) => {
+            eprintln!("Error reading data: {}", err);
+        }
     }
 
-    // Calculate and print the medians
-    let shape_leng_median = calculate_median(&shape_leng_values);
-    let shape_area_median = calculate_median(&shape_area_values);
+    let new_shape_leng = 3.3;
+    let num_rom_ca_to_update = "Test Num";
 
-    println!("Shape_Leng Median: {}", shape_leng_median);
-    println!("Shape_Area Median: {}", shape_area_median);
+    match update_shape_leng(&conn, new_shape_leng, num_rom_ca_to_update) {
+        Ok(_) => {
+            println!("Updated Shape Leng for num_rom_ca {} to {}", num_rom_ca_to_update, new_shape_leng);
+        }
+        Err(err) => {
+            eprintln!("Error updating data: {}", err);
+        }
+    }
 
-    let end_time = Instant::now();
+    // Prepare a SQL statement to select a single row based on num_rom_ca
+    let mut stmt = conn.prepare("SELECT id, name_cap_2, num_rom_ca, Shape_Leng, Shape_Area FROM indexs WHERE num_rom_ca = ?")?;
 
-    // Calculate the elapsed time and resource usage
-    let elapsed_time = end_time.duration_since(start_time);
-    let mem_info = mem_info().unwrap();
+    // Bind the parameter and execute the query
+    let row = stmt.query_row(&[num_rom_ca_to_update], |row| {
+        Ok((
+            row.get::<usize, i32>(0)?,
+            row.get::<usize, String>(1)?,
+            row.get::<usize, String>(2)?,
+            row.get::<usize, f64>(3)?,
+            row.get::<usize, f64>(4)?,
+        ))
+    });
 
-    println!("Memory Usage: {}%", mem_info.total.saturating_sub(mem_info.avail) as f32 / mem_info.total as f32 * 100.0);
-    println!("Elapsed time: {:?}", elapsed_time);
-    // println!("Memory usage: {} bytes", std::mem::size_of::<f64>());
+    match row {
+        Ok((id, name_cap_2, num_rom_ca, shape_leng, shape_area)) => {
+            println!("Updated row: ID: {}, Name: {}, Number: {}, Shape Leng: {}, Shape Area: {}",
+                id, name_cap_2, num_rom_ca, shape_leng, shape_area);
+        }
+        Err(rusqlite::Error::QueryReturnedNoRows) => {
+            println!("No record found with num_rom_ca: {}", num_rom_ca_to_update);
+        }
+        Err(err) => {
+            eprintln!("Error reading data: {}", err);
+        }
+    }
+
+    let num_rom_ca_to_delete = "Test Num";
+
+    match delete(&conn, num_rom_ca_to_delete) {
+        Ok(_) => {
+            println!("Deleted record with num_rom_ca: {}", num_rom_ca_to_delete);
+        }
+        Err(err) => {
+            eprintln!("Error deleting data: {}", err);
+        }
+    }
+
+    // Prepare a SQL statement to select a single row based on num_rom_ca
+    let mut stmt = conn.prepare("SELECT id, name_cap_2, num_rom_ca, Shape_Leng, Shape_Area FROM indexs WHERE num_rom_ca = ?")?;
+
+    // Bind the parameter and execute the query
+    let row = stmt.query_row(&[num_rom_ca_to_update], |row| {
+        Ok((
+            row.get::<usize, i32>(0)?,
+            row.get::<usize, String>(1)?,
+            row.get::<usize, String>(2)?,
+            row.get::<usize, f64>(3)?,
+            row.get::<usize, f64>(4)?,
+        ))
+    });
+
+    match row {
+        Ok((id, name_cap_2, num_rom_ca, shape_leng, shape_area)) => {
+            println!("Updated row: ID: {}, Name: {}, Number: {}, Shape Leng: {}, Shape Area: {}",
+                id, name_cap_2, num_rom_ca, shape_leng, shape_area);
+        }
+        Err(rusqlite::Error::QueryReturnedNoRows) => {
+            println!("Delete Successfully! No record found with num_rom_ca: {}", num_rom_ca_to_update);
+        }
+        Err(err) => {
+            eprintln!("Error reading data: {}", err);
+        }
+    }
 
     Ok(())
 }
-

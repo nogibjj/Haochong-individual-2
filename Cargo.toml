@@ -1,16 +1,12 @@
 [package]
-name = "Haochong-Week-8-mini"
+name = "Haochong-individual-2"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 csv = "1.1"
-statrs = "0.14"
-sys-info = "0.9"
-
-
-[dev-dependencies]
-pretty_assertions = "0.7"
+reqwest = { version = "^0.11", features = ["blocking"] }
+rusqlite = "0.23.1"
 
 
 

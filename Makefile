@@ -22,22 +22,3 @@ release:
 	cargo build --release
 
 all: format lint test run
-
-python_install:
-	pip install --upgrade pip &&\
-		pip install -r requirements.txt
-
-python_test:
-	python -m pytest -vv --cov=main --cov=mylib test_*.py
-
-python_format:	
-	black *.py 
-
-python_lint:
-	ruff check *.py mylib/*.py
-
-python_deploy:
-	#deploy goes here
-		
-python_all: install lint test format deploy
-
