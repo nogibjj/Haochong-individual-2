@@ -10,64 +10,24 @@ pub fn extract(url: &str, file_path: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+//write a function that creates a table in the database
 pub fn create_table(conn: &rusqlite::Connection) -> Result<(), rusqlite::Error> {
-    // Check if the table 'indexs' exists
-    let table_exists: bool = conn.query_row(
-        "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'indexs')",
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS indexs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name_cap_2 TEXT,
+            num_rom_ca TEXT,
+            Shape_Leng REAL,
+            Shape_Area REAL
+        )",
         NO_PARAMS,
-        |row| row.get(0),
     )?;
-
-    if !table_exists {
-        // Table doesn't exist, create it
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS indexs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name_cap_2 TEXT,
-                num_rom_ca TEXT,
-                Shape_Leng REAL,
-                Shape_Area REAL
-            )",
-            NO_PARAMS,
-        )?;
-    }
-
     Ok(())
 }
 
-
-// pub fn create_table(conn: &rusqlite::Connection) -> Result<(), rusqlite::Error> {
-//     conn.execute(
-//         "CREATE TABLE IF NOT EXISTS indexs (
-//             id INTEGER PRIMARY KEY AUTOINCREMENT,
-//             name_cap_2 TEXT,
-//             num_rom_ca TEXT,
-//             Shape_Leng REAL,
-//             Shape_Area REAL
-//         )",
-//         NO_PARAMS,
-//     )?;
-//     Ok(())
-// }
-
-pub fn load_csv_into_db(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn load_transform(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Create a SQLite database connection
     let conn = Connection::open("ktopomapseriesindexDB.db")?;
-
-    // Clear the table before inserting new data
-    conn.execute("DELETE FROM indexs", params![])?;
-
-    // Create a new table if it doesn't exist
-    // conn.execute(
-    //     "CREATE TABLE IF NOT EXISTS indexs (
-    //          id INTEGER PRIMARY KEY AUTOINCREMENT,
-    //          name_cap_2 TEXT,
-    //          num_rom_ca TEXT,
-    //          Shape_Leng REAL,
-    //          Shape_Area REAL
-    //      )",
-    //     params![],
-    // )?;
 
     // Open the CSV file and read its contents
     let file = std::fs::File::open(file_path)?;
@@ -91,8 +51,7 @@ pub fn load_csv_into_db(file_path: &str) -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 
-
-
+//write a function that inserts a record into the database
 pub fn insert(
     c: &rusqlite::Connection,
     name_cap_2: &str,
@@ -107,6 +66,7 @@ pub fn insert(
     Ok(())
 }
 
+//write a function that reads the data from the database
 pub fn read(c: &rusqlite::Connection) -> Result<Vec<(i64, String, String, f64, f64)>, rusqlite::Error> {
     let mut stmt = c.prepare("SELECT id, name_cap_2, num_rom_ca, Shape_Leng, Shape_Area FROM indexs")?;
     let indexs_iter = stmt.query_map(NO_PARAMS, |row| {
@@ -126,6 +86,7 @@ pub fn read(c: &rusqlite::Connection) -> Result<Vec<(i64, String, String, f64, f
     Ok(indexs)
 }
 
+//write a function that updates the shape length
 pub fn update_shape_leng(
     c: &rusqlite::Connection,
     shape_leng: f64,
@@ -138,8 +99,8 @@ pub fn update_shape_leng(
     Ok(())
 }
 
+//write a function that deletes a record from the database
 pub fn delete(c: &rusqlite::Connection, num_rom_ca: &str) -> Result<(), rusqlite::Error> {
     c.execute("DELETE FROM indexs WHERE num_rom_ca = ?", &[num_rom_ca])?;
     Ok(())
 }
-

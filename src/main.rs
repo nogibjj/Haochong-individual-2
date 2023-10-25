@@ -2,7 +2,7 @@ extern crate csv;
 
 use Haochong_individual_2::extract;
 use Haochong_individual_2::create_table;
-use Haochong_individual_2::load_csv_into_db;
+use Haochong_individual_2::load_transform;
 use Haochong_individual_2::insert;
 use Haochong_individual_2::read;
 use Haochong_individual_2::update_shape_leng;
@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let conn = Connection::open(db_path)?;
     create_table(&conn)?;
     if !db_exists {
-        load_csv_into_db(file_path)?;
+        load_transform(file_path)?;
     }
 
     let name_cap_2 = "Test Name";
